@@ -1,0 +1,101 @@
+name: Build and Upload Artifact
+
+on: push
+
+permissions:
+  contents: write
+
+jobs:
+  build_debian:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:11
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Update & Install dependencies
+        run: apt-get update -y && apt-get install -y build-essential cmake ruby ruby-dev rubygems libmariadb-dev
+
+      - name: Install fpm (Effing Package Management)
+        run: gem install fpm
+
+      - name: Verify fpm installed
+        run: fpm --version
+
+      - name: Use cmake
+        run: cmake --version
+
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          make
+
+      - name: Create Package
+        run: fpm -t deb -v ${{ github.ref_name }}
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4.3.1
+        with:
+          name: mysql_looperd-${{ github.ref_name }}.amd64.deb
+          path: "*.deb"
+
+  build_rocky:
+    runs-on: ubuntu-latest
+    container:
+      image: rockylinux:8
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Update & Install dependencies
+        run: dnf install -y cmake make gcc-c++ @ruby:3.1 rubygems mariadb-devel rpm-build
+
+      - name: Install fpm (Effing Package Management)
+        run: gem install fpm
+
+      - name: Verify fpm installed
+        run: fpm --version
+
+      - name: Use cmake
+        run: cmake --version
+
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          make
+
+      - name: Create Package
+        run: fpm -t rpm -v ${{ github.ref_name }}
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4.3.1
+        with:
+          name: mysql_looperd-${{ github.ref_name }}.x86_64.rpm
+          path: "*.rpm"
+  release:
+    runs-on: ubuntu-latest
+    needs: [build_debian, build_rocky]
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    steps:
+      - name: Download Debian Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: debian_artifacts
+
+      - name: Download Rocky Linux Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: rockylinux_artifacts
+
+      - name: Release new version
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            debian_artifacts/mysql_looperd-${{ github.ref_name }}.amd64.deb/*.deb
+            rockylinux_artifacts/mysql_looperd-${{ github.ref_name }}.x86_64.rpm/*.rpm

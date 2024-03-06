@@ -1,0 +1,12 @@
+-s dir
+-n mysql_looperd
+--url="https://github.com/wreiske/mysql_looper" 
+--description="a simple command-line daemon to execute a MySQL query in a loop and measure the connect, execution, and finish time."
+--license="MIT"
+--vendor="Medical Informatics Engineering, Inc."
+--maintainer="Will Reiske <wreiske@mieweb.com>"
+--architecture="amd64"
+--deb-build-depends="libmysqlclient-dev"
+--verbose
+
+build/mysql_looperd=/usr/bin/mysql_looperd
