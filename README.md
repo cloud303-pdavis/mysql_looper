@@ -117,3 +117,22 @@ cd build
 cmake ..
 make
 ```
+
+## Building with Docker
+
+```sh
+docker build -t mysql_looperd .
+```
+
+### Test run with Docker
+  
+```sh
+docker run -d --rm --name mysql -e MYSQL_ROOT_PASSWORD=testpass mysql
+
+# wait a bit for mysql to start up, then run the looper
+docker run --rm --link mysql -t mysql_looperd -h mysql -u root -p testpass
+
+# test will run here, Ctrl+c to stop
+
+docker stop mysql
+```
